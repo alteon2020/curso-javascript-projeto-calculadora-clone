@@ -13,7 +13,8 @@ class CalcController {
 	}
 	//Inicia a data e a hora do display;
 	initialize() {
-
+		//atualiza display
+		this.setLastNumberToDisplay();
 		this.setDisplayDateTime();
 
 		setInterval(() => {
@@ -37,10 +38,14 @@ class CalcController {
 	//Método de limpar tudo
 	clearAll() {
 		this._operation = [];
+		//atualiza display
+		this.setLastNumberToDisplay();
 	}
 	//Limpa a ultima entrada
 	clearEntry() {
 		this._operation.pop();
+		//atualiza display
+		this.setLastNumberToDisplay();
 	}
 
 	//Método de erro
@@ -59,12 +64,27 @@ class CalcController {
 	}
 
 	//calcula o par
-	calc(){
-		let last = this._operation.pop();
+	calc() {
 
+		let last = "";
+		if(this._operation.length > 3){
+
+			last = this._operation.pop();
+		}
 		let result = eval(this._operation.join(""));
+		if (last == '%') {
 
-		this._operation = [result, last];
+			result /= 100;
+			this._operation = [result];
+
+		} else {
+
+			this._operation = [result];
+			if(last) this._operation.push(last);
+
+		}
+		//atualiza display
+		this.setLastNumberToDisplay();
 	}
 
 	//Método para verificar o operador anterior.
@@ -73,10 +93,10 @@ class CalcController {
 	}
 
 	//Método para fazer adicionar os pares.
-	pushOperation(value){
+	pushOperation(value) {
 		this._operation.push(value);
 
-		if(this._operation.length > 3){
+		if (this._operation.length > 3) {
 
 			this.calc();
 
@@ -86,14 +106,21 @@ class CalcController {
 	}
 	//Método que mostra o ultimo numero no display.
 
-	setLastNumberToDisplay(){
-
-		//nothing aqui
+	setLastNumberToDisplay() {
+		let lastNumber;
+		for (let i = this._operation.length - 1; i >= 0; i--) {
+			if (!this.isOperator(this._operation[i])) {
+				lastNumber = this._operation[i];
+				break;
+			}
+		}
+		if (!lastNumber) lastNumber = 0;
+		this.displayCalc = lastNumber;
 	}
 
 	//Método de operação.
 	addOperation(value) {
-		
+
 		if (isNaN(this.getLastOperation())) {
 			//string
 			if (this.isOperator(value)) {
@@ -105,6 +132,8 @@ class CalcController {
 				console.log('outra coisa');
 			} else {
 				this.pushOperation(value);
+				//atualiza display
+				this.setLastNumberToDisplay();
 			}
 		} else {
 			//number
@@ -148,7 +177,7 @@ class CalcController {
 
 				break;
 			case 'igual':
-
+				this.calc();
 				break;
 			case 'ponto':
 				this.addOperation('.');
