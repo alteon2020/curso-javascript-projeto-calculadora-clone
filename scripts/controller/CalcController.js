@@ -5,6 +5,10 @@ class CalcController {
 
 		this._lastOperator = '';
 		this._lastNumber = '';
+		//audio dos botões.
+		this._audioOnOff = false;
+
+		this._audio = new Audio('click.mp3');
 
 		this._operation = [];
 		this._locale = 'pt-BR'
@@ -14,11 +18,38 @@ class CalcController {
 		this._currentDate;
 		this.initialize();
 		this.initButtonEvents();
+		this.initKeyboard();
+	}
+	pastefromClipboard() {
+
+		document.addEventListener('paste', e => {
+
+			let txt = e.clipboardData.getData('Text');
+
+			this.displayCalc = parseFloat(txt);
+		});
+	}
+
+	copyToClipboard() {
+
+		let input = document.createElement('input');
+
+		input.value = this.displayCalc;
+
+		document.body.appendChild(input);
+
+		input.select();
+
+		document.execCommand("Copy");
+
+		input.remove();
+
 	}
 	//Inicia a data e a hora do display;
 	initialize() {
-		//atualiza display
-		this.setLastNumberToDisplay();
+
+		this.setDisplayDateTime();
+
 		this.setDisplayDateTime();
 
 		setInterval(() => {
@@ -27,7 +58,82 @@ class CalcController {
 
 		}, 1000);
 
+		//atualiza display
+		this.setLastNumberToDisplay();
+		this.pastefromClipboard();
 
+		document.querySelectorAll('.btn-ac').forEach(btn => {
+
+			btn.addEventListener('dblclick', e => {
+
+				this.toggleAudio();
+
+			});
+		});
+
+
+	}
+	//som dos botões
+	toggleAudio() {
+
+		this._audioOnOff = !this._audioOnOff;
+	}
+	playAudio() {
+
+		if (this._audioOnOff) {
+			this._audio.currentTime = 0;
+			this._audio.play();
+
+		}
+	}
+
+	initKeyboard() {
+
+		document.addEventListener('keyup', e => {
+
+			this.playAudio();
+
+			switch (e.key) {
+
+				case 'Escape':
+					this.clearAll();
+					break;
+				case 'Backspace':
+					this.clearEntry();
+					break;
+				case '+':
+				case '-':
+				case '/':
+				case '*':
+				case '%':
+					this.addOperation(e.key);
+					break;
+				case 'Enter':
+				case '=':
+					this.calc();
+					break;
+				case '.':
+				case ',':
+					this.addDot('.');
+
+					break;
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					this.addOperation(parseInt(e.key));
+					break;
+				case 'c':
+					if (e.ctrlKey) this.copyToClipboard();
+					break;
+			}
+		});
 	}
 	//Método que trata mais de um evento que acontece na calculadora.
 	addEventListenerAll(element, events, fn) {
@@ -70,8 +176,13 @@ class CalcController {
 	}
 
 	getResult() {
-
-		return eval(this._operation.join(""));
+		try{
+			return eval(this._operation.join(""));
+		}catch(e){
+			setTimeout(()=>{
+				this.setError();
+			},1);
+		}
 	}
 
 	//calcula o par
@@ -141,7 +252,7 @@ class CalcController {
 			}
 
 		}
-		if(!lastItem){
+		if (!lastItem) {
 
 			lastItem = (isOperator) ? this._lastOperator : this._lastNumber;
 		}
@@ -157,13 +268,13 @@ class CalcController {
 
 		this.displayCalc = lastNumber;
 	}
-	addDot(){
+	addDot() {
 		let lastOperation = this.getLastOperation();
-		if(typeof lastOperation === 'string' && lastOperation.split('').indexOf('.') > -1) return;
+		if (typeof lastOperation === 'string' && lastOperation.split('').indexOf('.') > -1) return;
 
-		if(this.isOperator(lastOperation) || !lastOperation){
+		if (this.isOperator(lastOperation) || !lastOperation) {
 			this.pushOperation('0.');
-		}else {
+		} else {
 			this.setLastOperation(lastOperation.toString() + '.');
 		}
 		this.setLastNumberToDisplay();
@@ -200,6 +311,9 @@ class CalcController {
 
 	//Método para definir as ações do botão.
 	execBtn(value) {
+
+		this.playAudio();
+
 		switch (value) {
 
 			case 'ac':
@@ -296,10 +410,15 @@ class CalcController {
 	}
 
 	get displayCalc() {
+
 		return this._displayCalcEl.innerHTML;
 	}
 
 	set displayCalc(value) {
+		if (value.toString().length > 10) {
+			this.setError();
+			return false;
+		}
 		this._displayCalcEl.innerHTML = value;
 	}
 
